@@ -3,7 +3,7 @@ package com.javaelementary;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-public class MyTreeMap<K, V> implements MyMap<K, V> {
+public class MyTreeMap<K extends Comparable<? super K>, V> implements MyMap<K, V> {
     private int size;
     private Entry<K, V> root;
 
@@ -44,17 +44,32 @@ public class MyTreeMap<K, V> implements MyMap<K, V> {
         }
     }
 
+    /**
+     * Removes all of the mappings from this map.
+     */
     @Override
     public void clear() {
         size = 0;
         root = null;
     }
 
+    /**
+     * Returns true if this map contains a mapping for the specified key.
+     * @param key - key whose presence in this map is to be tested
+     * @return true if this map contains a mapping for the specified key
+     * @throws NullPointerException - if the specified key is null
+     */
     @Override
     public boolean containsKey(K key) {
         return findEntry(key) != null;
     }
 
+    /**
+     * Returns the value to which the specified key is mapped, or null if this map contains no mapping for the key.
+     * @param key - the key whose associated value is to be returned
+     * @return the value to which the specified key is mapped, or null if this map contains no mapping for the key
+     * @throws NullPointerException - if the specified key is null
+     */
     @Override
     public V get(K key) {
         Entry<K, V> entry = findEntry(key);
@@ -64,11 +79,22 @@ public class MyTreeMap<K, V> implements MyMap<K, V> {
         return entry.value;
     }
 
+    /**
+     * Returns true if this map contains no key-value mappings.
+     * @return true if this map contains no key-value mappings
+     */
     @Override
     public boolean isEmpty() {
         return root == null;
     }
 
+    /**
+     * Associates the specified value with the specified key in this map.
+     * @param key - key with which the specified value is to be associated
+     * @param value - value to be associated with the specified key
+     * @return the previous value associated with key, or null if there was no mapping for key.
+     * @throws NullPointerException - if the specified key is null
+     */
     @Override
     public V put(K key, V value) {
         if (key == null) {
@@ -79,14 +105,23 @@ public class MyTreeMap<K, V> implements MyMap<K, V> {
             size++;
             return null;
         }
+        putToTree(root, key, value);
         return putToTree(root, key, value);
     }
 
+    /**
+     * Returns the number of key-value mappings in this map.
+     * @return the number of key-value mappings in this map
+     */
     @Override
     public int size() {
         return size;
     }
 
+    /**
+     * Returns a Set view of the mappings contained in this map.
+     * @return a set view of the mappings contained in this map
+     */
     @Override
     public Set<MyTreeMap.Entry<K, V>> entrySet() {
         Set<Entry<K, V>> set = new LinkedHashSet<>();
@@ -110,40 +145,62 @@ public class MyTreeMap<K, V> implements MyMap<K, V> {
         addToSet(entry.right, set);
     }
 
-    private Entry<K, V> leftRotate(Entry<K, V> x) {
-        Entry<K, V> y = x.right;
-        Entry<K, V> tmp = y.left;
-        y.left = x;
-        x.right = tmp;
-        y.height = Math.max(height(y.left), height(y.right)) + 1;
-        x.height = Math.max(height(x.left), height(x.right)) + 1;
-        return y;
+    private Entry<K, V> leftRotate(Entry<K, V> entry) {
+        if (entry.parent == null) {
+            root = entry.right;
+            root.parent = null;
+            root.left.left = entry;
+            entry.parent = root.left;
+            entry.right = null;
+        } else {
+            entry.right.parent = entry.parent;
+            entry.parent.right = entry.right;
+            entry.parent = entry.right;
+            entry.right.left = entry;
+            entry.right = null;
+        }
+        entry.height = Math.max(height(entry.left), height(entry.right)) + 1;
+        entry.parent.height = Math.max(height(entry.parent.left), height(entry.parent.right)) + 1;
+        return entry.parent;
     }
 
-    private Entry<K, V> rightRotate(Entry<K, V> y) {
-        Entry<K, V> x = y.left;
-        Entry<K, V> tmp = x.right;
-        x.right = y;
-        y.left = tmp;
-        y.height = Math.max(height(y.left), height(y.right)) + 1;
-        x.height = Math.max(height(x.left), height(x.right)) + 1;
-        return x;
+    private Entry<K, V> rightRotate(Entry<K, V> entry) {
+        if (entry.parent == null) {
+            root = entry.left;
+            root.parent = null;
+            root.right.right = entry;
+            entry.parent = root.right;
+            entry.left = null;
+        } else {
+            entry.left.parent = entry.parent;
+            entry.parent.right = entry.left;
+            entry.parent = entry.left;
+            entry.left.right = entry;
+            entry.left = null;
+        }
+        entry.height = Math.max(height(entry.left), height(entry.right)) + 1;
+        entry.parent.height = Math.max(height(entry.parent.left), height(entry.parent.right)) + 1;
+        return entry.parent;
     }
 
-    private Entry<K, V> balanceTree(Entry<K, V> entry, K key, V value, int balanceFactor) {
-        @SuppressWarnings("unchecked")
-        Comparable<? super K> k = (Comparable<? super K>) key;
-        if (balanceFactor > 1 && k.compareTo(entry.left.key) < 0) {
+    /**
+     * AVL tree balancing
+     */
+    private Entry<K, V> balanceTree(Entry<K, V> entry, K key, V value) {
+        entry.height = Math.max(height(entry.left), height(entry.right)) + 1;
+        int balanceFactor = getBalance(entry);
+
+        if (balanceFactor > 1 && key.compareTo(entry.left.key) < 0) {
             return rightRotate(entry);
         }
-        if (balanceFactor < -1 && k.compareTo(entry.right.key) > 0) {
+        if (balanceFactor < -1 && key.compareTo(entry.right.key) > 0) {
             return leftRotate(entry);
         }
-        if (balanceFactor > 1 && k.compareTo(entry.left.key) > 0) {
+        if (balanceFactor > 1 && key.compareTo(entry.left.key) > 0) {
             entry.left = leftRotate(entry.left);
             return rightRotate(entry);
         }
-        if (balanceFactor < -1 && k.compareTo(entry.right.key) < 0) {
+        if (balanceFactor < -1 && key.compareTo(entry.right.key) < 0) {
             entry.right = rightRotate(entry.right);
             return leftRotate(entry);
         }
@@ -158,24 +215,16 @@ public class MyTreeMap<K, V> implements MyMap<K, V> {
     }
 
     private int getBalance(Entry<K, V> entry) {
-        return height(entry.right) - height(entry.left);
+        return height(entry.left) - height(entry.right);
     }
 
     private V putToTree(Entry<K, V> entry, K key, V value) {
-        @SuppressWarnings("unchecked")
-        Comparable<? super K> k = (Comparable<? super K>) key;
-        int cmp = k.compareTo(entry.key);
+        int cmp = key.compareTo(entry.key);
         if (cmp < 0) {
             if (entry.left == null) {
                 entry.left = new Entry<>(key, value);
+                entry.left.parent = entry;
                 size++;
-
-                entry.height = Math.max(height(entry.left), height(entry.right)) + 1;
-                int balanceFactor = getBalance(entry);
-                if (balanceFactor > 1 || balanceFactor < -1) {
-                    balanceTree(entry, key, value, balanceFactor);
-                }
-                return entry.value;
             } else {
                 putToTree(entry.left, key, value);
             }
@@ -183,34 +232,27 @@ public class MyTreeMap<K, V> implements MyMap<K, V> {
         if (cmp > 0) {
             if (entry.right == null) {
                 entry.right = new Entry<>(key, value);
+                entry.right.parent = entry;
                 size++;
-
-                entry.height = Math.max(height(entry.left), height(entry.right)) + 1;
-                int balanceFactor = getBalance(entry);
-                if (balanceFactor > 1 || balanceFactor < -1) {
-                    balanceTree(entry, key, value, balanceFactor);
-                }
-                return entry.value;
             } else {
                 putToTree(entry.right, key, value);
             }
         }
         if (cmp == 0) {
             entry.setValue(value);
-            return entry.value;
+            return value;
         }
-        return entry.value;
+        balanceTree(entry, key, value);
+        return null;
     }
 
-    private Entry<K, V> findEntry(Object key) {
+    private Entry<K, V> findEntry(K key) {
         if (key == null) {
-            throw new IllegalArgumentException();
+            throw new NullPointerException();
         }
-        @SuppressWarnings("unchecked")
-        Comparable<? super K> k = (Comparable<? super K>) key;
         Entry<K, V> entry = root;
         while (entry != null) {
-            int cmp = k.compareTo(entry.key);
+            int cmp = key.compareTo(entry.key);
             if (cmp < 0) {
                 entry = entry.left;
             }
