@@ -105,7 +105,6 @@ public class MyTreeMap<K extends Comparable<? super K>, V> implements MyMap<K, V
             size++;
             return null;
         }
-        putToTree(root, key, value);
         return putToTree(root, key, value);
     }
 
@@ -145,7 +144,7 @@ public class MyTreeMap<K extends Comparable<? super K>, V> implements MyMap<K, V
         addToSet(entry.right, set);
     }
 
-    private Entry<K, V> leftRotate(Entry<K, V> entry) {
+    private Entry<K, V> rotateLeft(Entry<K, V> entry) {
         if (entry.parent == null) {
             root = entry.right;
             root.parent = null;
@@ -164,7 +163,7 @@ public class MyTreeMap<K extends Comparable<? super K>, V> implements MyMap<K, V
         return entry.parent;
     }
 
-    private Entry<K, V> rightRotate(Entry<K, V> entry) {
+    private Entry<K, V> rotateRight(Entry<K, V> entry) {
         if (entry.parent == null) {
             root = entry.left;
             root.parent = null;
@@ -191,18 +190,18 @@ public class MyTreeMap<K extends Comparable<? super K>, V> implements MyMap<K, V
         int balanceFactor = getBalance(entry);
 
         if (balanceFactor > 1 && key.compareTo(entry.left.key) < 0) {
-            return rightRotate(entry);
+            return rotateRight(entry);
         }
         if (balanceFactor < -1 && key.compareTo(entry.right.key) > 0) {
-            return leftRotate(entry);
+            return rotateLeft(entry);
         }
         if (balanceFactor > 1 && key.compareTo(entry.left.key) > 0) {
-            entry.left = leftRotate(entry.left);
-            return rightRotate(entry);
+            entry.left = rotateLeft(entry.left);
+            return rotateRight(entry);
         }
         if (balanceFactor < -1 && key.compareTo(entry.right.key) < 0) {
-            entry.right = rightRotate(entry.right);
-            return leftRotate(entry);
+            entry.right = rotateRight(entry.right);
+            return rotateLeft(entry);
         }
         return entry;
     }
